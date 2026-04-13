@@ -29,8 +29,6 @@
 #include <QScreen>
 #include <QTimer>
 
-#include <KWindowSystem>
-
 Launcher::Launcher(bool firstShow, QQuickView *w)
     : QQuickView(w)
     , m_dockInterface("com.cutefish.Dock",
@@ -45,19 +43,19 @@ Launcher::Launcher(bool firstShow, QQuickView *w)
     new LauncherAdaptor(this);
 
     engine()->rootContext()->setContextProperty("launcher", this);
+    engine()->addImageProvider("icontheme", new IconThemeImageProvider);
 
     setColor(Qt::transparent);
     setFlags(Qt::FramelessWindowHint);
     setResizeMode(QQuickView::SizeRootObjectToView);
-    setClearBeforeRendering(true);
+    // setClearBeforeRendering 在 Qt6 中已移除
     onGeometryChanged();
 
     setSource(QUrl(QStringLiteral("qrc:/qml/main.qml")));
     setTitle(tr("Launcher"));
-    setVisible(true);
     setVisible(firstShow);
 
-    // Let the animation in qml be hidden after the execution is complete
+    // 隐藏动画结束后再真正隐藏窗口
     m_hideTimer->setInterval(200);
     m_hideTimer->setSingleShot(true);
     connect(m_hideTimer, &QTimer::timeout, this, [=] { setVisible(false); });
@@ -69,44 +67,28 @@ Launcher::Launcher(bool firstShow, QQuickView *w)
     } else {
         QDBusServiceWatcher *watcher = new QDBusServiceWatcher("com.cutefish.Dock",
                                                                QDBusConnection::sessionBus(),
-                                                               QDBusServiceWatcher::WatchForUnregistration,
+                                                               QDBusServiceWatcher::WatchForRegistration,
                                                                this);
-        connect(watcher, &QDBusServiceWatcher::serviceUnregistered, this, [=] {
+        connect(watcher, &QDBusServiceWatcher::serviceRegistered, this, [=] {
             updateMargins();
             connect(&m_dockInterface, SIGNAL(primaryGeometryChanged()), this, SLOT(updateMargins()));
             connect(&m_dockInterface, SIGNAL(directionChanged()), this, SLOT(updateMargins()));
         });
     }
 
-    connect(qApp, &QApplication::primaryScreenChanged, this, [=] { onGeometryChanged(); });
+    connect(qApp, &QGuiApplication::primaryScreenChanged, this, [=] { onGeometryChanged(); });
     connect(this, &QQuickView::activeChanged, this, &Launcher::onActiveChanged);
 }
 
-int Launcher::leftMargin() const
-{
-    return m_leftMargin;
-}
-
-int Launcher::rightMargin() const
-{
-    return m_rightMargin;
-}
-
-int Launcher::bottomMargin() const
-{
-    return m_bottomMargin;
-}
-
-bool Launcher::showed()
-{
-    return m_showed;
-}
+int Launcher::leftMargin() const { return m_leftMargin; }
+int Launcher::rightMargin() const { return m_rightMargin; }
+int Launcher::bottomMargin() const { return m_bottomMargin; }
+bool Launcher::showed() { return m_showed; }
 
 void Launcher::showWindow()
 {
     m_showed = true;
     emit showedChanged();
-
     setVisible(true);
 }
 
@@ -133,10 +115,8 @@ bool Launcher::isPinedDock(const QString &desktop)
                          "/Dock",
                          "com.cutefish.Dock",
                          QDBusConnection::sessionBus());
-
     if (!iface.isValid())
         return false;
-
     return iface.call("pinned", desktop).arguments().first().toBool();
 }
 
@@ -159,13 +139,12 @@ void Launcher::updateMargins()
     m_rightMargin = 0;
     m_bottomMargin = 0;
 
-    if (dockDirection == 0) {
+    if (dockDirection == 0)
         m_leftMargin = dockGeometry.width();
-    } else if (dockDirection == 1) {
+    else if (dockDirection == 1)
         m_bottomMargin = dockGeometry.height();
-    } else if (dockDirection == 2) {
+    else if (dockDirection == 2)
         m_rightMargin = dockGeometry.width();
-    }
 
     emit marginsChanged();
 }
@@ -182,24 +161,20 @@ void Launcher::updateSize()
 void Launcher::onGeometryChanged()
 {
     disconnect(screen());
-
     setScreen(qApp->primaryScreen());
     updateSize();
-
     connect(screen(), &QScreen::virtualGeometryChanged, this, &Launcher::updateSize);
     connect(screen(), &QScreen::geometryChanged, this, &Launcher::updateSize);
 }
 
 void Launcher::showEvent(QShowEvent *e)
 {
-    KWindowSystem::setState(winId(), NET::SkipTaskbar | NET::SkipPager);
-
+    // KWindowSystem::setState 在 Wayland 下不可用，跳过
     QQuickView::showEvent(e);
 }
 
 void Launcher::resizeEvent(QResizeEvent *e)
 {
-    // The window manager forces the size.
     e->ignore();
 }
 
@@ -208,4 +183,3 @@ void Launcher::onActiveChanged()
     if (!isActive())
         Launcher::hide();
 }
-

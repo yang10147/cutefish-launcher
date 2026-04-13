@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2021 CutefishOS.
  *
- * Author:     Reoin Wong <reion@cutefishos.com>
+ * Author:     Reion Wong <reion@cutefishos.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,16 +17,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.12
-import QtQuick.Controls 2.12
-import QtGraphicalEffects 1.0
-import QtQuick.Window 2.12
-import QtQuick.Layouts 1.12
-import FishUI 1.0 as FishUI
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Window
+import QtQuick.Layouts
 import Cutefish.Launcher 1.0
 
 Item {
     id: control
+
+    // 替代 FishUI.Units
+    readonly property int smallSpacing: 4
+    readonly property int largeSpacing: 8
 
     property bool searchMode: false
     property bool dragStarted: false
@@ -44,13 +46,8 @@ Item {
     Drag.hotSpot.x: icon.width / 2
     Drag.hotSpot.y: icon.height / 2
 
-    Drag.onDragStarted:  {
-        dragStarted = true
-    }
-
-    Drag.onDragFinished: {
-        dragStarted = false
-    }
+    Drag.onDragStarted: dragStarted = true
+    Drag.onDragFinished: dragStarted = false
 
     DropArea {
         anchors.fill: icon
@@ -91,7 +88,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.bottom: label.top
-        anchors.margins: FishUI.Units.largeSpacing * 2
+        anchors.margins: control.largeSpacing * 2
 
         width: height
         height: width
@@ -99,17 +96,17 @@ Item {
         source: model.iconName
         visible: !dragStarted
 
-        ColorOverlay {
-            id: colorOverlay
-            anchors.fill: icon
-            source: icon
+        // 替代 ColorOverlay：用半透明黑色矩形覆盖
+        Rectangle {
+            anchors.fill: parent
             color: "#000000"
-            opacity: 0.5
-            visible: iconMouseArea.pressed
+            opacity: iconMouseArea.pressed ? 0.3 : 0.0
+            radius: width / 8
         }
     }
 
-    FishUI.DesktopMenu {
+    // 右键菜单（替代 FishUI.DesktopMenu）
+    Menu {
         id: _itemMenu
 
         MenuItem {
@@ -144,16 +141,6 @@ Item {
                 root.uninstallDialog.visible = true
             }
         }
-
-        // MenuItem {
-        //     text: qsTr("Uninstall")
-        //     onTriggered: {}
-        // }
-
-        function updateActions() {
-            sendToDock.visible = launcher.dockAvailable() && !launcher.isPinedDock(model.appId)
-            removeFromDock.visible = launcher.dockAvailable() && launcher.isPinedDock(model.appId)
-        }
     }
 
     MouseArea {
@@ -162,17 +149,18 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         drag.axis: Drag.XAndYAxis
 
-        onClicked: {
-            if (mouse.button == Qt.LeftButton)
+        onClicked: (mouse) => {
+            if (mouse.button === Qt.LeftButton)
                 launcherModel.launch(model.appId)
-            else if (mouse.button == Qt.RightButton) {
+            else if (mouse.button === Qt.RightButton) {
                 uninstallItem.visible = appManager.isCutefishOS()
-                _itemMenu.updateActions()
+                sendToDock.visible = launcher.dockAvailable() && !launcher.isPinedDock(model.appId)
+                removeFromDock.visible = launcher.dockAvailable() && launcher.isPinedDock(model.appId)
                 _itemMenu.popup()
             }
         }
 
-        onPositionChanged: {
+        onPositionChanged: (mouse) => {
             if (pressed) {
                 if (mouse.source !== Qt.MouseEventSynthesizedByQt) {
                     drag.target = icon
@@ -196,35 +184,29 @@ Item {
         text: label.text
     }
 
+    // 新安装指示点（替代 FishUI.Theme.highlightColor）
     Rectangle {
         id: newInstallPoint
-
         width: 6
         height: 6
-
         visible: !dragStarted && model.newInstalled
-
         anchors {
             horizontalCenter: parent.horizontalCenter
             bottom: label.top
-            bottomMargin: FishUI.Units.smallSpacing
+            bottomMargin: control.smallSpacing
         }
-
-        color: FishUI.Theme.highlightColor
+        color: "#3daee9"
         radius: height / 2
     }
 
     Label {
         id: label
-
         anchors {
             horizontalCenter: parent.horizontalCenter
             bottom: parent.bottom
-            margins: FishUI.Units.smallSpacing
+            margins: control.smallSpacing
         }
-
         visible: !dragStarted
-
         text: model.name
         elide: Text.ElideRight
         textFormat: Text.PlainText
@@ -232,7 +214,7 @@ Item {
         wrapMode: "WordWrap"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignTop
-        width: parent.width - 2 * FishUI.Units.smallSpacing
+        width: parent.width - 2 * control.smallSpacing
         height: fontMetrics.height * 2
         color: "white"
 

@@ -2,7 +2,7 @@
 #include <QSGSimpleTextureNode>
 #include <QSGTexture>
 #include <QQuickWindow>
-#include <QApplication>
+#include <QGuiApplication>
 #include <QIcon>
 
 IconItem::IconItem(QQuickItem *parent)
@@ -20,29 +20,16 @@ void IconItem::setSource(const QVariant &source)
     m_source.clear();
     m_source = source;
 
-    // If the QIcon was created with QIcon::fromTheme(), try to load it as svg.
-    if (source.canConvert<QIcon>() && source.value<QIcon>().name().isEmpty()) {
+    if (source.canConvert<QIcon>() && source.value<QIcon>().name().isEmpty())
         m_source = source.value<QIcon>().name();
-    }
 
     loadPixmap();
     emit sourceChanged();
 }
 
-QVariant IconItem::source() const
-{
-    return m_source;
-}
-
-int IconItem::paintedWidth() const
-{
-    return boundingRect().size().toSize().width();
-}
-
-int IconItem::paintedHeight() const
-{
-    return boundingRect().size().toSize().height();
-}
+QVariant IconItem::source() const { return m_source; }
+int IconItem::paintedWidth() const { return boundingRect().size().toSize().width(); }
+int IconItem::paintedHeight() const { return boundingRect().size().toSize().height(); }
 
 QSGNode *IconItem::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePaintNodeData *updatePaintNodeData)
 {
@@ -63,7 +50,6 @@ QSGNode *IconItem::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePaintNode
 
     textureNode->setFiltering(smooth() ? QSGTexture::Linear : QSGTexture::Nearest);
 
-    // Size changed
     const QSize newSize = QSize(paintedWidth(), paintedHeight());
     const QRect destRect(QPointF(boundingRect().center() - QPointF(newSize.width(), newSize.height()) / 2).toPoint(), newSize);
     textureNode->setRect(destRect);
@@ -71,25 +57,23 @@ QSGNode *IconItem::updatePaintNode(QSGNode *oldNode, QQuickItem::UpdatePaintNode
     return textureNode;
 }
 
-void IconItem::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
+// Qt6 使用 geometryChange 替代 Qt5 的 geometryChanged
+void IconItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
 {
     polish();
     update();
-
-    QQuickItem::geometryChanged(newGeometry, oldGeometry);
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
 }
 
 void IconItem::componentComplete()
 {
     QQuickItem::componentComplete();
-
     polish();
 }
 
 void IconItem::updatePolish()
 {
     QQuickItem::updatePolish();
-
     loadPixmap();
 }
 
@@ -106,8 +90,6 @@ void IconItem::loadPixmap()
     int size = qMin(qRound(width()), qRound(height()));
 
     if (size <= 0) {
-        // Clear pixmap
-        delete &m_iconPixmap;
         m_iconPixmap = QPixmap();
         update();
         return;

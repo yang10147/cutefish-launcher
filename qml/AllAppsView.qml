@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2021 CutefishOS.
  *
- * Author:     Reoin Wong <reion@cutefishos.com>
+ * Author:     Reion Wong <reion@cutefishos.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.12
-import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.12
-import FishUI 1.0 as FishUI
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 
 import Cutefish.Launcher 1.0
 
@@ -32,7 +31,8 @@ ListView {
     property var sourceModel: launcherModel
     property var modelCount: sourceModel.count
 
-    property int iconSize: root.iconSize + FishUI.Units.largeSpacing * 2
+    // 替代 FishUI.Units.largeSpacing（8px * 2 = 16）
+    property int iconSize: root.iconSize + 16
     property int cellWidth: iconSize + calcExtraSpacing(iconSize, control.width)
     property int cellHeight: iconSize + calcExtraSpacing(iconSize, control.height)
 
@@ -82,11 +82,9 @@ ListView {
         anchors.fill: parent
         z: -1
 
-        onClicked: {
-            launcher.hideWindow()
-        }
+        onClicked: launcher.hideWindow()
 
-        onWheel: {
+        onWheel: (wheel) => {
             if (wheel.angleDelta.y > 0)
                 scrollPreviousPage()
             else
@@ -145,7 +143,6 @@ ListView {
     function scrollNextPage() {
         if (scrollAnim.running)
             return
-
         if (currentIndex < count - 1) {
             scrollAnim.to = control.currentItem.x + control.width
             scrollAnim.restart()
@@ -155,7 +152,6 @@ ListView {
     function scrollPreviousPage() {
         if (scrollAnim.running)
             return
-
         if (currentIndex > 0) {
             scrollAnim.to = control.currentItem.x - control.width
             scrollAnim.restart()

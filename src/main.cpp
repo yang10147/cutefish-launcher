@@ -23,6 +23,10 @@
 #include <QPixmapCache>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QFile>
+#include <QDebug>
+#include <QTranslator>
+#include <QLocale>
 
 #include "launcher.h"
 #include "launchermodel.h"
@@ -30,29 +34,20 @@
 #include "iconitem.h"
 #include "appmanager.h"
 
-#include <QDebug>
-#include <QTranslator>
-#include <QLocale>
-
 #define DBUS_NAME "com.cutefish.Launcher"
 #define DBUS_PATH "/Launcher"
 #define DBUS_INTERFACE "com.cutefish.Launcher"
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Qt::AA_EnableHighDpiScaling 在 Qt6 中已默认开启，无需设置
 
     QByteArray uri = "Cutefish.Launcher";
     qmlRegisterType<LauncherModel>(uri, 1, 0, "LauncherModel");
     qmlRegisterType<PageModel>(uri, 1, 0, "PageModel");
     qmlRegisterType<IconItem>(uri, 1, 0, "IconItem");
     qmlRegisterType<AppManager>(uri, 1, 0, "AppManager");
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    qmlRegisterType<QAbstractItemModel>();
-#else
     qmlRegisterAnonymousType<QAbstractItemModel>(uri, 0);
-#endif
 
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("cutefish-launcher"));
@@ -62,10 +57,6 @@ int main(int argc, char *argv[])
     QCommandLineParser parser;
     QCommandLineOption showOption(QStringLiteral("show"), "Show Launcher");
     parser.addOption(showOption);
-    // QCommandLineOption hideOption(QStringLiteral("hide"), "Hide Launcher");
-    // parser.addOption(hideOption);
-    // QCommandLineOption toggleOption(QStringLiteral("toggle"), "Toggle Launcher");
-    // parser.addOption(toggleOption);
     parser.process(app.arguments());
 
     QDBusConnection dbus = QDBusConnection::sessionBus();

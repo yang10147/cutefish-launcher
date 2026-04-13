@@ -22,7 +22,9 @@ public:
     int paintedHeight() const;
 
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
-    void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
+
+    // Qt6: geometryChange 替代 Qt5 的 geometryChanged
+    void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
 
     void componentComplete() override;
     void updatePolish() override;
