@@ -4,7 +4,6 @@
 #include <QQuickWindow>
 #include <QGuiApplication>
 #include <QIcon>
-#include "iconthemeimageprovider.h"
 
 IconItem::IconItem(QQuickItem *parent)
     : QQuickItem(parent)
@@ -131,23 +130,10 @@ void IconItem::loadPixmap()
     }
 
     if (m_iconPixmap.isNull()) {
-        // 先用 IconThemeImageProvider 按文件路径查找（支持 Crule 主题）
-        QSize reqSize(size * qApp->devicePixelRatio(), size * qApp->devicePixelRatio());
-        QSize realSize;
-        // 去掉 image://icontheme/ 前缀，只取图标名
-        QString iconName = sourceString;
-        if (iconName.startsWith("image://icontheme/"))
-            iconName = iconName.mid(18);
-        IconThemeImageProvider provider;
-        QImage img = provider.requestImage(iconName, &realSize, reqSize);
-        if (!img.isNull()) {
-            m_iconPixmap = QPixmap::fromImage(img);
-            m_iconPixmap.setDevicePixelRatio(qApp->devicePixelRatio());
-        } else {
-            QIcon icon = QIcon::fromTheme(iconName, QIcon::fromTheme("application-x-desktop"));
-            m_iconPixmap = icon.pixmap(reqSize);
-            m_iconPixmap.setDevicePixelRatio(qApp->devicePixelRatio());
-        }
+        QIcon icon = QIcon::fromTheme(sourceString, QIcon::fromTheme("application-x-desktop"));
+        m_iconPixmap = icon.pixmap(QSize(size * qApp->devicePixelRatio(),
+                                         size * qApp->devicePixelRatio()));
+        m_iconPixmap.setDevicePixelRatio(qApp->devicePixelRatio());
     }
 
     update();
